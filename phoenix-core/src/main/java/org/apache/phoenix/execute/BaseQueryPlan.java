@@ -64,6 +64,7 @@ import org.apache.phoenix.schema.PColumn;
 import org.apache.phoenix.schema.PName;
 import org.apache.phoenix.schema.PTable;
 import org.apache.phoenix.schema.PTable.IndexType;
+import org.apache.phoenix.schema.PTable.StorageScheme;
 import org.apache.phoenix.schema.PTableType;
 import org.apache.phoenix.schema.TableRef;
 import org.apache.phoenix.trace.TracingIterator;
@@ -298,6 +299,7 @@ public abstract class BaseQueryPlan implements QueryPlan {
             // TODO: can have an hint to skip joining back to data table, in that case if any column to
             // project is not present in the index then we need to skip this plan.
             if (!dataColumns.isEmpty()) {
+                // Set data columns to be join back from data table.
                 PTable parentTable = context.getCurrentTable().getTable();
                 String parentSchemaName = parentTable.getParentSchemaName().getString();
                 String parentTableName = parentTable.getParentTableName().getString();
@@ -420,10 +422,17 @@ public abstract class BaseQueryPlan implements QueryPlan {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         try {
             DataOutputStream output = new DataOutputStream(stream);
+            boolean storeColsInSingleCell = dataTable.getStorageScheme() == StorageScheme.COLUMNS_STORED_IN_SINGLE_CELL;
+            if (storeColsInSingleCell) {
+                // if storeColsInSingleCell is true all columns of a given column family are stored in a single cell
+                scan.setAttribute(BaseScannerRegionObserver.COLUMNS_STORED_IN_SINGLE_CELL, QueryConstants.EMPTY_COLUMN_VALUE_BYTES);
+            }
             WritableUtils.writeVInt(output, dataColumns.size());
             for (PColumn column : dataColumns) {
-                Bytes.writeByteArray(output, column.getFamilyName().getBytes());
-                Bytes.writeByteArray(output, EncodedColumnsUtil.getColumnQualifier(column, dataTable));
+                byte[] cf = column.getFamilyName().getBytes();
+                byte[] cq = EncodedColumnsUtil.getColumnQualifier(column, dataTable);
+                Bytes.writeByteArray(output, cf);
+                Bytes.writeByteArray(output, cq);
             }
             scan.setAttribute(BaseScannerRegionObserver.DATA_TABLE_COLUMNS_TO_JOIN, stream.toByteArray());
         } catch (IOException e) {

@@ -67,6 +67,7 @@ import org.apache.phoenix.schema.PColumn;
 import org.apache.phoenix.schema.PName;
 import org.apache.phoenix.schema.PTable;
 import org.apache.phoenix.schema.PTable.IndexType;
+import org.apache.phoenix.schema.PTable.StorageScheme;
 import org.apache.phoenix.schema.RowKeySchema;
 import org.apache.phoenix.schema.SortOrder;
 import org.apache.phoenix.schema.ValueSchema.Field;
@@ -918,7 +919,8 @@ public class ScanUtil {
     }
     
     public static boolean setMinMaxQualifiersOnScan(PTable table) {
-        return EncodedColumnsUtil.usesEncodedColumnNames(table) && !table.isTransactional() && !hasDynamicColumns(table);
+        return table.getStorageScheme() != null && table.getStorageScheme() == StorageScheme.ENCODED_COLUMN_NAMES
+        		&& !table.isTransactional() && !hasDynamicColumns(table);
     }
     
     public static boolean hasDynamicColumns(PTable table) {

@@ -19,6 +19,7 @@ package org.apache.phoenix.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.phoenix.query.QueryConstants;
 import org.apache.phoenix.schema.PColumn;
@@ -29,7 +30,11 @@ import org.apache.phoenix.schema.types.PInteger;
 public class EncodedColumnsUtil {
 
     public static boolean usesEncodedColumnNames(PTable table) {
-        return table.getStorageScheme() != null && table.getStorageScheme() == StorageScheme.ENCODED_COLUMN_NAMES;
+        return usesEncodedColumnNames(table.getStorageScheme());
+    }
+    
+    public static boolean usesEncodedColumnNames(StorageScheme storageSchema) {
+        return storageSchema != null && storageSchema != StorageScheme.NON_ENCODED_COLUMN_NAMES;
     }
 
     public static byte[] getEncodedColumnQualifier(PColumn column) {
@@ -40,6 +45,18 @@ public class EncodedColumnsUtil {
 
     public static byte[] getColumnQualifier(PColumn column, PTable table) {
       return EncodedColumnsUtil.getColumnQualifier(column, usesEncodedColumnNames(table));
+    }
+    
+    public static void setColumns(PColumn column, PTable table, Scan scan) {
+    	if (table.getStorageScheme() == StorageScheme.COLUMNS_STORED_IN_SINGLE_CELL) {
+            // if a table storage scheme is COLUMNS_STORED_IN_SINGLE_CELL set then all columns of a column family are stored in a single cell 
+            // (with the qualifier name being same as the family name), just project the column family here
+            // so that we can calculate estimatedByteSize correctly in ProjectionCompiler 
+    		scan.addFamily(column.getFamilyName().getBytes());
+        }
+        else {
+        	scan.addColumn(column.getFamilyName().getBytes(), EncodedColumnsUtil.getColumnQualifier(column, table));
+        }
     }
 
     public static byte[] getColumnQualifier(PColumn column, boolean encodedColumnName) {

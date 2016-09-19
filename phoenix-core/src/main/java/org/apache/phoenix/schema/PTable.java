@@ -166,7 +166,8 @@ public interface PTable extends PMetaDataEntity {
     
     public enum StorageScheme {
         ENCODED_COLUMN_NAMES((byte)1),
-        NON_ENCODED_COLUMN_NAMES((byte)2);
+        NON_ENCODED_COLUMN_NAMES((byte)2),
+        COLUMNS_STORED_IN_SINGLE_CELL((byte)3);
 
         private final byte[] byteValue;
         private final byte serializedValue;

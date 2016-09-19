@@ -26,6 +26,7 @@ import java.util.TreeSet;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.phoenix.expression.ArrayColumnExpression;
 import org.apache.phoenix.expression.Expression;
 import org.apache.phoenix.expression.KeyValueColumnExpression;
 import org.apache.phoenix.expression.visitor.ExpressionVisitor;
@@ -185,6 +186,11 @@ public abstract class MultiKeyValueComparisonFilter extends BooleanExpressionFil
             @Override
             public Void visit(KeyValueColumnExpression expression) {
                 inputTuple.addColumn(expression.getColumnFamily(), expression.getColumnQualifier());
+                return null;
+            }
+            @Override
+            public Void visit(ArrayColumnExpression expression) {
+                inputTuple.addColumn(expression.getArrayExpression().getColumnFamily(), expression.getArrayExpression().getColumnQualifier());
                 return null;
             }
         };

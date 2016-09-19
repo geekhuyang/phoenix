@@ -498,7 +498,7 @@ public class UngroupedAggregateRegionObserver extends BaseScannerRegionObserver 
                                         Put put = maintainer.buildUpdateMutation(kvBuilder,
                                             valueGetter, ptr, results.get(0).getTimestamp(),
                                             env.getRegion().getRegionInfo().getStartKey(),
-                                            env.getRegion().getRegionInfo().getEndKey());
+                                            env.getRegion().getRegionInfo().getEndKey(), false);
                                         indexMutations.add(put);
                                     }
                                 }

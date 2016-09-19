@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.hadoop.hbase.HConstants;
+
 import javax.management.Query;
 
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -87,6 +88,7 @@ import org.apache.phoenix.query.QueryServicesOptions;
 import org.apache.phoenix.schema.PColumnFamily;
 import org.apache.phoenix.schema.PTable;
 import org.apache.phoenix.schema.PTable.IndexType;
+import org.apache.phoenix.schema.PTable.StorageScheme;
 import org.apache.phoenix.schema.PTable.ViewType;
 import org.apache.phoenix.schema.StaleRegionBoundaryCacheException;
 import org.apache.phoenix.schema.TableRef;
@@ -260,7 +262,8 @@ public abstract class BaseResultIterators extends ExplainTable implements Result
     
     private static Pair<Integer, Integer> getMinMaxQualifiers(Scan scan, StatementContext context) {
         PTable table = context.getCurrentTable().getTable();
-        checkArgument(EncodedColumnsUtil.usesEncodedColumnNames(table), "Method should only be used for tables using encoded column names");
+        StorageScheme storageScheme = table.getStorageScheme();
+		checkArgument(EncodedColumnsUtil.usesEncodedColumnNames(storageScheme), "Method should only be used for tables using encoded column names");
         Integer minQualifier = null;
         Integer maxQualifier = null;
         boolean emptyKVProjected = false;
@@ -410,7 +413,7 @@ public abstract class BaseResultIterators extends ExplainTable implements Result
             // the ExplicitColumnTracker not to be used, though.
             if (!statement.isAggregate() && filteredColumnNotInProjection) {
                 ScanUtil.andFilterAtEnd(scan, new ColumnProjectionFilter(SchemaUtil.getEmptyColumnFamily(table),
-                        columnsTracker, conditionOnlyCfs, EncodedColumnsUtil.usesEncodedColumnNames(table)));
+                        columnsTracker, conditionOnlyCfs, EncodedColumnsUtil.usesEncodedColumnNames(table.getStorageScheme())));
             }
         }
     }

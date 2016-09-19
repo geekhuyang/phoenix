@@ -1805,7 +1805,7 @@ public class MetaDataClient {
                 updateCacheFrequency = updateCacheFrequencyProp;
             }
             String autoPartitionSeq = (String) TableProperty.AUTO_PARTITION_SEQ.getValue(tableProps);
-
+            
             Boolean storeNullsProp = (Boolean) TableProperty.STORE_NULLS.getValue(tableProps);
             if (storeNullsProp == null) {
                 if (parent == null) {
@@ -1827,7 +1827,7 @@ public class MetaDataClient {
                 if (transactionalProp == null) {
                     transactional = connection.getQueryServices().getProps().getBoolean(
                                     QueryServices.DEFAULT_TABLE_ISTRANSACTIONAL_ATTRIB,
-                                    QueryServicesOptions.DEFAULT_TRANSACTIONAL);
+                                    QueryServicesOptions.DEFAULT_TABLE_ISTRANSACTIONAL);
                 } else {
                     transactional = transactionalProp;
                 }
@@ -2037,7 +2037,7 @@ public class MetaDataClient {
                      */
                     viewPhysicalTable = connection.getTable(new PTableKey(null, physicalNames.get(0).getString()));
                     storageScheme = viewPhysicalTable.getStorageScheme();
-                    if (storageScheme == StorageScheme.ENCODED_COLUMN_NAMES) {
+					if (EncodedColumnsUtil.usesEncodedColumnNames(viewPhysicalTable)) {
                         cqCounter  = viewPhysicalTable.getEncodedCQCounter();
                     }
                 }
@@ -2078,10 +2078,15 @@ public class MetaDataClient {
                     storageScheme = parent.getStorageScheme();
                 } else if (tableExists) {
                     storageScheme = StorageScheme.NON_ENCODED_COLUMN_NAMES;
+                } else if (isImmutableRows) {
+//                    storageScheme = StorageScheme.NON_ENCODED_COLUMN_NAMES;
+                    storageScheme = StorageScheme.COLUMNS_STORED_IN_SINGLE_CELL;
+                    // since we are storing all columns of a column family in a single key value we can't use deletes to store nulls
+                    storeNulls = true;
                 } else {
                     storageScheme = StorageScheme.ENCODED_COLUMN_NAMES;
                 }
-                cqCounter = storageScheme == StorageScheme.ENCODED_COLUMN_NAMES ? new EncodedCQCounter() : NULL_COUNTER;
+                cqCounter = storageScheme != StorageScheme.ENCODED_COLUMN_NAMES ? new EncodedCQCounter() : NULL_COUNTER;
             }
             
             Map<String, Integer> changedCqCounters = new HashMap<>(colDefs.size());
@@ -2531,7 +2536,7 @@ public class MetaDataClient {
     }
     
     private static boolean incrementEncodedCQCounter(StorageScheme storageScheme, ColumnDef colDef) {
-        return storageScheme == StorageScheme.ENCODED_COLUMN_NAMES && !colDef.isPK();
+        return storageScheme != StorageScheme.NON_ENCODED_COLUMN_NAMES && !colDef.isPK();
     }
 
     private byte[][] getSplitKeys(List<HRegionLocation> allTableRegions) {
@@ -2951,7 +2956,6 @@ public class MetaDataClient {
             PName tenantId = connection.getTenantId();
             String schemaName = table.getSchemaName().getString();
             String tableName = table.getTableName().getString();
-
             Boolean isImmutableRowsProp = null;
             Boolean multiTenantProp = null;
             Boolean disableWALProp = null;
