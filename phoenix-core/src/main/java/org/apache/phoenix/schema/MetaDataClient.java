@@ -2086,7 +2086,7 @@ public class MetaDataClient {
                 } else {
                     storageScheme = StorageScheme.ENCODED_COLUMN_NAMES;
                 }
-                cqCounter = storageScheme != StorageScheme.ENCODED_COLUMN_NAMES ? new EncodedCQCounter() : NULL_COUNTER;
+                cqCounter = storageScheme != StorageScheme.NON_ENCODED_COLUMN_NAMES ? new EncodedCQCounter() : NULL_COUNTER;
             }
             
             Map<String, Integer> changedCqCounters = new HashMap<>(colDefs.size());
